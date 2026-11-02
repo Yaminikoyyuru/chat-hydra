@@ -1,0 +1,21 @@
+export const config = {
+  bossName: "The Chat Hydra",
+  bossEmoji: "🐉",
+  startingMaxHP: 40,
+  respawnHPIncrease: 20,
+  respawnDelayMs: 5_000,
+  damage: { normal: 1, bonus: 2, attack: 5 },
+  attackCooldownMs: 3_000,
+  damageLogLimit: 30,
+  mockIntervalMs: 800,
+  streamerDeathHeal: 0.15,
+  streamerRoundDamage: 0.10,
+  clutchDurationMs: 5_000,
+  powerUpDurationMs: 10_000,
+  raidDamagePerViewer: 0.01,
+  giftDamagePerSub: 0.10,
+  bitsPerDamage: 10,
+  tauntDurationMs: 4_000,
+  summaryDurationMs: 5_000,
+  defaultTaunts: ["The chat grows stronger!", "The boss is watching…", "Keep the pressure on!"]
+} as const;

@@ -1,0 +1,15 @@
+{
+  "bossName": "The Chat Hydra",
+  "bossEmoji": "🐉",
+  "maxHP": 40,
+  "damage": {
+    "normal": 1,
+    "bonus": 2,
+    "attack": 5
+  },
+  "tauntLines": [
+    "The chat grows stronger!",
+    "The boss is watching…",
+    "Keep the pressure on!"
+  ]
+}

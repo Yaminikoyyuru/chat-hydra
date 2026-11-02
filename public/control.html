@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Boss Battle Control</title>
+  <style>
+    * { box-sizing: border-box; } body { margin: 0; background: #10111b; color: #f7f4ff; font: 16px system-ui, sans-serif; }
+    main { max-width: 900px; margin: 32px auto; padding: 0 20px 40px; } h1 { margin-bottom: 4px; } p, small { color: #aaa8bb; }
+    section { margin-top: 22px; padding: 20px; border: 1px solid #343246; border-radius: 16px; background: #191a28; }
+    .actions, .events { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    button { border: 0; border-radius: 12px; padding: 18px 12px; color: white; background: #7736cb; font: 800 18px system-ui; cursor: pointer; }
+    button:hover { filter: brightness(1.15); } button:disabled { opacity: .5; cursor: wait; }
+    .actions button { min-height: 88px; font-size: 22px; } .events button { padding: 14px 8px; background: #35324d; font-size: 15px; }
+    form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; } label { display: grid; gap: 6px; color: #d9d5e8; }
+    input, textarea { width: 100%; border: 1px solid #48445f; border-radius: 8px; background: #10111b; color: white; padding: 10px; font: inherit; }
+    textarea { min-height: 115px; resize: vertical; } .wide { grid-column: 1 / -1; } .numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    #status { color: #8ce0a6; } #notice { min-height: 22px; color: #ffe95e; }
+    @media(max-width:650px) { .actions, .events, form, .numbers { grid-template-columns: 1fr; } .wide { grid-column: auto; } }
+  </style>
+</head>
+<body><main>
+  <h1>🎮 Boss Battle Control</h1><p>Streamer vs chat · <span id="status">Connecting…</span></p>
+  <section><h2>Streamer actions</h2><div class="actions">
+    <button data-action="died">I DIED<br><small>Boss heals 15%</small></button>
+    <button data-action="won">I WON A ROUND<br><small>Boss loses 10%</small></button>
+    <button data-action="clutch">CLUTCH<br><small>Stun for 5 seconds</small></button>
+  </div></section>
+  <section id="mock-events"><h2>Mock Twitch events</h2><div class="events">
+    <button data-event="raid">🚨 Raid (10 viewers)</button><button data-event="sub">⭐ Sub / resub</button><button data-event="gift">🎁 Gift subs (3)</button>
+    <button data-event="bits">💎 Cheer (500 bits)</button>
+  </div><p><strong>Test broadcaster chat commands</strong></p><div class="events">
+    <button data-command="died">Simulate !died</button><button data-command="won">Simulate !won</button><button data-command="clutch">Simulate !clutch</button>
+  </div><small>These buttons use the same event handlers as Twitch EventSub.</small></section>
+  <section><h2>Boss settings</h2><form id="settings">
+    <label>Boss name<input name="bossName" maxlength="50" required></label>
+    <label>Boss emoji / icon<input name="bossEmoji" maxlength="8" required></label>
+    <label>Max HP<input name="maxHP" type="number" min="10" max="100000" required></label>
+    <label class="wide">Taunt lines <small>One line per taunt</small><textarea name="tauntLines"></textarea></label>
+    <div class="wide"><strong>Chat damage</strong><div class="numbers">
+      <label>Normal<input name="normal" type="number" min="0.1" step="0.1" required></label>
+      <label>Caps / emote<input name="bonus" type="number" min="0.1" step="0.1" required></label>
+      <label>!attack<input name="attack" type="number" min="0.1" step="0.1" required></label>
+    </div></div>
+    <button class="wide" type="submit">Save settings</button>
+  </form><p id="notice" aria-live="polite"></p></section>
+  <section id="twitch"><h2>Twitch events</h2><p>Connect the broadcaster account to receive raids, subscriptions, resubs, gift subs and cheers.</p><a href="/auth/twitch"><button type="button">Connect Twitch EventSub</button></a></section>
+</main>
+<script>
+  const form = document.querySelector('#settings');
+  const notice = document.querySelector('#notice');
+  const status = document.querySelector('#status');
+  let runtimeLabel = 'Connecting to server…';
+  let socketLabel = 'WebSocket connecting';
+  function updateStatus() { status.textContent = `${runtimeLabel} · ${socketLabel}`; }
+  async function request(url, body, method = body ? 'POST' : 'GET') {
+    const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+    if (!response.ok) throw new Error((await response.json()).error || 'Request failed');
+    return response.json();
+  }
+  async function load() {
+    const [settings, runtime] = await Promise.all([fetch('/api/settings').then(r => r.json()), fetch('/api/status').then(r => r.json())]);
+    form.elements.bossName.value = settings.bossName;
+    form.elements.bossEmoji.value = settings.bossEmoji;
+    form.elements.maxHP.value = settings.maxHP;
+    form.elements.normal.value = settings.damage.normal;
+    form.elements.bonus.value = settings.damage.bonus;
+    form.elements.attack.value = settings.damage.attack;
+    form.elements.tauntLines.value = settings.tauntLines.join('\n');
+    if (!runtime.mock) document.querySelector('#mock-events').hidden = true;
+    else document.querySelector('#twitch').hidden = true;
+    runtimeLabel = runtime.mock ? 'MOCK MODE' : runtime.eventSubConnected ? `Twitch EventSub connected (${runtime.streamer})` : 'Twitch chat mode';
+    updateStatus();
+    if (location.search.includes('connected=1')) notice.textContent = 'Twitch connected. EventSub is starting.';
+  }
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    try {
+      const saved = await request('/api/settings', {
+        bossName: data.get('bossName'), bossEmoji: data.get('bossEmoji'), maxHP: Number(data.get('maxHP')),
+        damage: { normal: Number(data.get('normal')), bonus: Number(data.get('bonus')), attack: Number(data.get('attack')) },
+        tauntLines: String(data.get('tauntLines')).split('\n')
+      }, 'PUT');
+      notice.textContent = `Saved ${saved.bossName} to settings.json. Overlay updated.`;
+    } catch (error) { notice.textContent = error.message; }
+  });
+  document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', async () => {
+    button.disabled = true;
+    try { await request('/api/action', { action: button.dataset.action }); notice.textContent = `${button.textContent.split('\n')[0]} sent.`; }
+    catch (error) { notice.textContent = error.message; }
+    finally { button.disabled = false; }
+  }));
+  document.querySelectorAll('[data-event]').forEach(button => button.addEventListener('click', async () => {
+    const event = button.dataset.event;
+    const count = event === 'raid' ? 10 : event === 'gift' ? 3 : event === 'bits' ? 500 : 1;
+    try { await request('/api/mock-event', { event, count }); notice.textContent = `${button.textContent.trim()} simulated.`; }
+    catch (error) { notice.textContent = error.message; }
+  }));
+  document.querySelectorAll('[data-command]').forEach(button => button.addEventListener('click', async () => {
+    try { await request('/api/mock-command', { action: button.dataset.command }); notice.textContent = `${button.textContent.trim()} received as broadcaster chat.`; }
+    catch (error) { notice.textContent = error.message; }
+  }));
+  function connectSocket() {
+    const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+    socket.onopen = () => { socketLabel = 'control WebSocket connected'; updateStatus(); };
+    socket.onclose = () => { socketLabel = 'WebSocket reconnecting…'; updateStatus(); setTimeout(connectSocket, 1000); };
+    socket.onerror = () => socket.close();
+    socket.onmessage = ({ data }) => {
+      const event = JSON.parse(data);
+      if (event.type === 'state') runtimeLabel = event.state.mock ? 'MOCK MODE' : event.state.eventSubConnected ? `Twitch EventSub connected (${event.state.streamer})` : 'Twitch chat mode';
+      if (event.type === 'connections') socketLabel = `control WebSocket connected · ${event.count} page${event.count === 1 ? '' : 's'} attached`;
+      updateStatus();
+    };
+  }
+  connectSocket();
+  load().catch(error => notice.textContent = error.message);
+</script></body></html>
