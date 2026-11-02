@@ -1,4 +1,4 @@
-# Boss Battle
+# Chat Hydra
 
 **Boss Battle is a chat-vs-streamer boss fight for Twitch.** Viewers team up in chat to damage a giant boss with messages, emotes, and `!attack`, while the streamer fights back from a control panel or with broadcaster-only chat commands. A transparent OBS overlay shows the boss, health, taunts, damage leaderboard, Twitch event effects, and the defeat summary. Run it in mock mode to demo everything without a live stream.
 
@@ -23,8 +23,8 @@ Clone the repository, then open a terminal in the project folder.
 ### Windows PowerShell
 
 ```powershell
-git clone https://github.com/YOUR-USERNAME/boss-battle.git
-cd boss-battle
+git clone https://github.com/YOUR-USERNAME/chat-hydra.git
+cd chat-hydra
 Copy-Item .env.example .env
 npm install
 .\start.ps1
@@ -33,8 +33,8 @@ npm install
 ### macOS
 
 ```sh
-git clone https://github.com/YOUR-USERNAME/boss-battle.git
-cd boss-battle
+git clone https://github.com/YOUR-USERNAME/chat-hydra.git
+cd chat-hydra
 cp .env.example .env
 npm install
 chmod +x start.sh
@@ -44,8 +44,8 @@ chmod +x start.sh
 ### Linux
 
 ```sh
-git clone https://github.com/YOUR-USERNAME/boss-battle.git
-cd boss-battle
+git clone https://github.com/YOUR-USERNAME/chat-hydra.git
+cd chat-hydra
 cp .env.example .env
 npm install
 chmod +x start.sh
